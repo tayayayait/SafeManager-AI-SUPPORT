@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Regulaw: AI 규정 준수 도우미</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'Noto Sans KR', 'sans-serif'],
+          },
+        },
+      },
+    }
+  </script>
+  <style>
+    /* Custom scrollbar for a cleaner look */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9; /* slate-100 */
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1; /* slate-300 */
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8; /* slate-400 */
+    }
+    /* Custom loading animation */
+    @keyframes bounce-delay {
+      0%, 80%, 100% {
+        transform: scaleY(0.4);
+        opacity: 0.5;
+      }
+      40% {
+        transform: scaleY(1.0);
+        opacity: 1;
+      }
+    }
+    .bounce-1 {
+      animation: bounce-delay 1.4s infinite ease-in-out;
+      animation-delay: -0.32s;
+    }
+    .bounce-2 {
+      animation: bounce-delay 1.4s infinite ease-in-out;
+      animation-delay: -0.16s;
+    }
+    .bounce-3 {
+      animation: bounce-delay 1.4s infinite ease-in-out;
+    }
+    .bg-grid-slate-200\/50 {
+      background-image: linear-gradient(theme(colors.slate.200 / 0.5) 1px, transparent 1px), linear-gradient(to right, theme(colors.slate.200 / 0.5) 1px, transparent 1px);
+      background-size: 20px 20px;
+    }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+<script type="importmap">
+{
+  "imports": {
+    "react/": "https://aistudiocdn.com/react@^19.1.1/",
+    "react": "https://aistudiocdn.com/react@^19.1.1",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@0.14.0/dist/index.js"
+  }
+}
+</script>
+</head>
+<body class="bg-slate-200 text-slate-800 font-sans">
+  <style>
+    body {
+      background-color: #e2e8f0; /* slate-200 */
+      background-image: radial-gradient(circle at top left, hsla(210, 40%, 98%, 0.2), transparent 40%),
+                        radial-gradient(circle at bottom right, hsla(220, 40%, 90%, 0.2), transparent 50%);
+    }
+  </style>
+  <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>
