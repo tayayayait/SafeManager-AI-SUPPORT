@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { AppState } from './types';
+import { AppState, GeminiModel } from './types';
 import FileUpload from './components/FileUpload';
 import ProcessingView from './components/ProcessingView';
 import SearchView from './components/SearchView';
 import ErrorView from './components/ErrorView';
 import Footer from './components/Footer';
+import ApiKeySetup from './components/ApiKeySetup';
 
 declare const pdfjsLib: any;
 
@@ -102,48 +103,47 @@ const App: React.FC = () => {
   const [appState, setAppState] = useState<AppState>('idle');
   const [files, setFiles] = useState<File[]>([]);
   const [chunks, setChunks] = useState<string[]>([]);
-  const [formTemplates, setFormTemplates] = useState<Record<string, string>>({});
   const [processingError, setProcessingError] = useState<string | null>(null);
+  const [apiKey, setApiKey] = useState<string | null>(null);
+  const [model, setModel] = useState<GeminiModel>('gemini-2.5-flash');
+
+  const handleApiSetup = (key: string, selectedModel: GeminiModel) => {
+    setApiKey(key);
+    setModel(selectedModel);
+    setFiles([]);
+    setChunks([]);
+    setProcessingError(null);
+    setAppState('idle');
+  };
+
+  const handleClearCredentials = () => {
+    setApiKey(null);
+    setModel('gemini-2.5-flash');
+    setFiles([]);
+    setChunks([]);
+    setProcessingError(null);
+    setAppState('idle');
+  };
 
   const processAllPdfs = useCallback(async (pdfFiles: File[]) => {
     try {
       const allTexts = await Promise.all(pdfFiles.map(file => processSinglePdf(file)));
       
-      const allChunks: string[] = [];
-      const allFormTemplates: Record<string, string> = {};
-
-      allTexts.forEach((text, index) => {
-          const pdfFile = pdfFiles[index];
-          
-          const fileChunks = chunkText(text);
-          if (fileChunks.length === 0) {
-              throw new Error(`'${pdfFiles[index].name}' 파일에서 텍스트를 추출할 수 없습니다. 문서가 비어있거나 이미지 기반일 수 있습니다.`);
-          }
-          // Add a header to the first chunk of each document
-          fileChunks[0] = `--- START OF ${pdfFiles[index].name} ---\n${fileChunks[0]}`;
-          allChunks.push(...fileChunks);
-
-          if (pdfFile.name.includes('시행규칙')) {
-              const sections = text.split('■ 산업안전보건법 시행규칙 [별지');
-              for (let i = 1; i < sections.length; i++) {
-                  const section = sections[i];
-                  const match = section.match(/^ 제(\d+(?:호(?:의\d+)?)?)서식\].*/s);
-                  if (match) {
-                      const formKey = `별지 제${match[1]}서식`;
-                      const formText = `■ 산업안전보건법 시행규칙 [별지${section}`.trim();
-                      allFormTemplates[formKey] = formText;
-                  }
-              }
-          }
+      const allChunks = allTexts.flatMap((text, index) => {
+        const fileChunks = chunkText(text);
+        if (fileChunks.length === 0) {
+            throw new Error(`'${pdfFiles[index].name}' 파일에서 텍스트를 추출할 수 없습니다. 문서가 비어있거나 이미지 기반일 수 있습니다.`);
+        }
+        // Add a header to the first chunk of each document
+        fileChunks[0] = `--- START OF ${pdfFiles[index].name} ---\n${fileChunks[0]}`;
+        return fileChunks;
       });
-
 
       if (allChunks.length === 0) {
         throw new Error("모든 PDF에서 텍스트를 추출할 수 없습니다.");
       }
 
       setChunks(allChunks);
-      setFormTemplates(allFormTemplates);
       setAppState('ready');
     } catch (err: any) {
       setProcessingError(err.message || 'PDF 문서 처리 중 오류가 발생했습니다.');
@@ -171,17 +171,30 @@ const App: React.FC = () => {
   const handleReset = () => {
     setFiles([]);
     setChunks([]);
-    setFormTemplates({});
     setProcessingError(null);
     setAppState('idle');
   };
   
   const renderContent = () => {
+    if (!apiKey) {
+      return <ApiKeySetup onSubmit={handleApiSetup} initialModel={model} />;
+    }
+
     switch (appState) {
       case 'processing':
         return <ProcessingView fileName={`${files.length}개의 문서를`} />;
       case 'ready':
-        return <SearchView fileNames={files.map(f => f.name)} chunks={chunks} formTemplates={formTemplates} onReset={handleReset} />;
+        return (
+          <SearchView
+            fileNames={files.map(f => f.name)}
+            chunks={chunks}
+            onReset={handleReset}
+            apiKey={apiKey}
+            model={model}
+            onChangeModel={setModel}
+            onResetCredentials={handleClearCredentials}
+          />
+        );
       case 'error':
         return <ErrorView error={processingError || '알 수 없는 오류가 발생했습니다.'} onReset={handleReset} />;
       case 'idle':

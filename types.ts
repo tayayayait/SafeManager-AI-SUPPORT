@@ -61,3 +61,5 @@ export interface SearchHistoryItem {
   timestamp: string;
   fileName: string;
 }
+
+export type GeminiModel = 'gemini-2.5-pro' | 'gemini-2.5-flash';

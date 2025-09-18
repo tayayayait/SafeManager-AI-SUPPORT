@@ -1,5 +1,5 @@
 {
-  "name": "copy-of-copy-of-copy-of-copy-of-안전관리자-ai-support(실무용)기능끝-(디자인-수정중)",
+  "name": "ai-support-앱배포를-위하여-apikey로그인화중",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -15,6 +15,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
+    "@vitejs/plugin-react": "^5.0.0",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
   }

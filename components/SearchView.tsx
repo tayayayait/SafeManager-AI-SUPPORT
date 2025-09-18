@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { GoogleGenAI, Type, Chat } from "@google/genai";
 import { SearchIcon, DocumentTextIcon, ClipboardIcon, CheckIcon, ClipboardListIcon, HardHatIcon, AlertTriangleIcon, BookOpenIcon, ChevronDownIcon, FilePlus2Icon, SparklesIcon, HistoryIcon, XCircleIcon, BotIcon, UserIcon, SendHorizonalIcon } from './icons';
-import { AnalysisResult, ClauseAnalysis, RequiredForm, SearchHistoryItem, GroupedClauseAnalysis, ActionItem, ConditionalForm, RecommendedForm } from '../types';
+import { AnalysisResult, ClauseAnalysis, RequiredForm, SearchHistoryItem, GroupedClauseAnalysis, ActionItem, ConditionalForm, RecommendedForm, GeminiModel } from '../types';
 import Tooltip from './Tooltip';
 
 const SearchResultItem: React.FC<{ clause: ClauseAnalysis }> = ({ clause }) => {
@@ -136,15 +136,16 @@ interface FormItemViewProps {
     form: RequiredForm | ConditionalForm | RecommendedForm;
     query: string;
     formTemplates: Record<string, string>;
+    aiClient: GoogleGenAI;
+    model: GeminiModel;
 }
 
-const FormItemView: React.FC<FormItemViewProps> = ({ form, query }) => {
+const FormItemView: React.FC<FormItemViewProps> = ({ form, query, formTemplates, aiClient, model }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [guide, setGuide] = useState<string | null>(null);
   const [guideCopied, setGuideCopied] = useState(false);
   const [isGeneratorVisible, setIsGeneratorVisible] = useState(false);
   const [customTemplate, setCustomTemplate] = useState('');
-  const ai = useMemo(() => new GoogleGenAI({ apiKey: "AIzaSyBJIkiVRRXbz8r-2gOnZfGIOkRK8DRDyYA" }), []);
 
 
   const handleCopyGuide = () => {
@@ -183,8 +184,8 @@ ${customTemplate}
 \`\`\`
 `;
       
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-pro",
+      const response = await aiClient.models.generateContent({
+        model,
         contents: [{ role: "user", parts: [{ text: prompt }] }],
       });
       setGuide(response.text);
@@ -269,6 +270,11 @@ ${customTemplate}
     </div>
   );
 };
+
+const MODEL_OPTIONS: { value: GeminiModel; label: string }[] = [
+  { value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
+  { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
+];
 
 
 const clauseAnalysisSchema = {
@@ -370,7 +376,7 @@ const systemInstruction = `
 **3. 필요 서류 분석 지침:**
 각 서류 카테고리의 목적에 맞게 아래의 개수 정책을 반드시 준수하여 서류를 추출해야 합니다.
 *   **필수 제출 서류 (mandatory_forms)**: **제한 없음.** 법적으로 요구되는 모든 서류를 누락 없이 포함하세요. 이는 법적 정확성을 확보하고 시스템의 신뢰도를 높이는 핵심 요소입니다.
-*   **조건부 제출 서류 (conditional_forms)**: **최대 5개로 제한.** 가장 중요하고 관련성 높은 조건부 제출 서류를  3개~5개까지 선정하여 포함하세요. 이는 사용자의 혼란을 방지하고 일관성을 확보하기 위함입니다.
+*   **조건부 제출 서류 (conditional_forms)**: **최대 5개로 제한.** 가장 중요하고 관련성 높은 조건부 제출 서류를 최대 5개까지 선정하여 포함하세요. 이는 사용자의 혼란을 방지하고 일관성을 확보하기 위함입니다.
 *   **권장 서류 (recommended_forms)**: **최대 3개로 제한.** 가장 실용적이고 유용한 권장 서류를 최대 3개까지만 선정하여 포함하세요. 이는 정보 과부하를 방지하고 사용자에게 실질적인 도움을 주기 위함입니다.
 
 사용자가 제공한 법령 텍스트만을 기반으로, 가장 관련성이 높은 조항을 정확히 찾아내어 JSON 스키마에 따라 답변을 생성하세요. 당신의 전문성을 보여주세요.
@@ -381,11 +387,15 @@ const systemInstruction = `
 interface SearchViewProps {
   fileNames: string[];
   chunks: string[];
-  formTemplates: Record<string, string>;
+  formTemplates?: Record<string, string>;
   onReset: () => void;
+  apiKey: string;
+  model: GeminiModel;
+  onChangeModel: (model: GeminiModel) => void;
+  onResetCredentials: () => void;
 }
 
-const SearchView: React.FC<SearchViewProps> = ({ fileNames, chunks, formTemplates, onReset }) => {
+const SearchView: React.FC<SearchViewProps> = ({ fileNames, chunks, formTemplates = {}, onReset, apiKey, model: selectedModel, onChangeModel, onResetCredentials }) => {
   const [query, setQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
@@ -404,7 +414,7 @@ const SearchView: React.FC<SearchViewProps> = ({ fileNames, chunks, formTemplate
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const chatMessagesEndRef = useRef<HTMLDivElement>(null);
   
-  const ai = useMemo(() => new GoogleGenAI({ apiKey: "AIzaSyBJIkiVRRXbz8r-2gOnZfGIOkRK8DRDyYA" }), []);
+  const aiClient = useMemo(() => new GoogleGenAI({ apiKey }), [apiKey]);
 
   useEffect(() => {
     const savedHistory = localStorage.getItem('searchHistory');
@@ -488,7 +498,6 @@ const handleSearch = useCallback(async () => {
     setChatMessages([]);
 
     try {
-      const model = "gemini-2.5-pro";
       const fullPrompt = `
         **법령 텍스트:**
         ${chunks.join('\n\n---\n\n')}
@@ -498,9 +507,9 @@ const handleSearch = useCallback(async () => {
         **재해 상황:**
         ${query}
       `;
-      
-      const response = await ai.models.generateContent({
-        model,
+
+      const response = await aiClient.models.generateContent({
+        model: selectedModel,
         contents: [{ role: "user", parts: [{ text: fullPrompt }] }],
         config: {
           responseMimeType: "application/json",
@@ -541,7 +550,7 @@ const handleSearch = useCallback(async () => {
         }
         setIsLoading(false);
     } 
-  }, [query, chunks, fileNames, searchHistory, ai]);
+  }, [query, chunks, fileNames, searchHistory, aiClient, selectedModel]);
 
   const loadFromHistory = (item: SearchHistoryItem) => {
     setQuery(item.query);
@@ -557,7 +566,7 @@ const handleSearch = useCallback(async () => {
       setIsAssistantVisible(prev => {
           const newVisibility = !prev;
           if (newVisibility && !chat && result) {
-              const newChat = ai.chats.create({
+              const newChat = aiClient.chats.create({
                   model: 'gemini-2.5-flash',
                   config: {
                       systemInstruction: `당신은 현재 분석된 산업 재해 보고서에 대해 사용자의 질문에 답변하는 AI 어시스턴트입니다. 다음은 사용자가 분석한 재해 상황과 관련 법규 정보입니다.\n\n재해 상황: ${result.accident_summary}\n\n핵심 규정:\n${result.core_regulations.map(c => c.clause_text).join('\n')}\n\n이 정보를 바탕으로 사용자의 질문에 친절하고 명확하게 답변해주세요.`
@@ -567,7 +576,7 @@ const handleSearch = useCallback(async () => {
           }
           return newVisibility;
       });
-  }, [chat, result, ai.chats]);
+  }, [chat, result, aiClient]);
 
   const handleChatSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
@@ -607,7 +616,26 @@ const handleSearch = useCallback(async () => {
                 </Tooltip>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 justify-end">
+            <div className="flex items-center gap-2 bg-white border border-slate-300 rounded-md px-3 py-1.5 text-sm text-slate-700">
+              <span className="font-semibold">모델</span>
+              <select
+                value={selectedModel}
+                onChange={(event) => onChangeModel(event.target.value as GeminiModel)}
+                className="bg-transparent focus:outline-none text-sm text-slate-700"
+                aria-label="Gemini 모델 선택"
+              >
+                {MODEL_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </div>
+            <button
+              onClick={onResetCredentials}
+              className="px-3 py-1.5 text-sm font-semibold text-slate-600 bg-white border border-slate-300 rounded-md hover:bg-slate-50"
+            >
+              API 키 재설정
+            </button>
             <button onClick={() => setIsHistoryVisible(!isHistoryVisible)} className="p-2 rounded-md text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition-colors">
                 <HistoryIcon className="w-5 h-5"/>
             </button>
@@ -735,13 +763,40 @@ const handleSearch = useCallback(async () => {
             <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-3"><FilePlus2Icon className="w-5 h-5 text-slate-500"/>필요 서류 및 서식</h3>
                  <Accordion title="필수 제출 서류" icon={<AlertTriangleIcon className="w-5 h-5 text-red-500"/>}>
-                    {result.mandatory_forms.length > 0 ? result.mandatory_forms.map((form, index) => <FormItemView key={index} form={form} query={query} formTemplates={formTemplates} />) : <p className="text-center text-sm text-slate-500 p-4">필수 서류가 없습니다.</p>}
+                    {result.mandatory_forms.length > 0 ? result.mandatory_forms.map((form, index) => (
+                        <FormItemView
+                            key={index}
+                            form={form}
+                            query={query}
+                            formTemplates={formTemplates}
+                            aiClient={aiClient}
+                            model={selectedModel}
+                        />
+                    )) : <p className="text-center text-sm text-slate-500 p-4">필수 서류가 없습니다.</p>}
                 </Accordion>
                 <Accordion title="조건부 제출 서류" icon={<DocumentTextIcon className="w-5 h-5 text-amber-500"/>}>
-                    {result.conditional_forms.length > 0 ? result.conditional_forms.map((form, index) => <FormItemView key={index} form={form} query={query} formTemplates={formTemplates} />) : <p className="text-center text-sm text-slate-500 p-4">조건부 서류가 없습니다.</p>}
+                    {result.conditional_forms.length > 0 ? result.conditional_forms.map((form, index) => (
+                        <FormItemView
+                            key={index}
+                            form={form}
+                            query={query}
+                            formTemplates={formTemplates}
+                            aiClient={aiClient}
+                            model={selectedModel}
+                        />
+                    )) : <p className="text-center text-sm text-slate-500 p-4">조건부 서류가 없습니다.</p>}
                 </Accordion>
                 <Accordion title="권장 서류" icon={<SparklesIcon className="w-5 h-5 text-sky-500"/>}>
-                    {result.recommended_forms.length > 0 ? result.recommended_forms.map((form, index) => <FormItemView key={index} form={form} query={query} formTemplates={formTemplates} />) : <p className="text-center text-sm text-slate-500 p-4">권장 서류가 없습니다.</p>}
+                    {result.recommended_forms.length > 0 ? result.recommended_forms.map((form, index) => (
+                        <FormItemView
+                            key={index}
+                            form={form}
+                            query={query}
+                            formTemplates={formTemplates}
+                            aiClient={aiClient}
+                            model={selectedModel}
+                        />
+                    )) : <p className="text-center text-sm text-slate-500 p-4">권장 서류가 없습니다.</p>}
                 </Accordion>
             </div>
           </div>
