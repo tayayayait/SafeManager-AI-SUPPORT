@@ -395,9 +395,10 @@ interface SearchViewProps {
   onRequestApiKeySetup: () => void;
   isUsingUserApiKey: boolean;
   onApiKeyInvalid: () => void;
+  noticeMessage?: string;
 }
 
-const SearchView: React.FC<SearchViewProps> = ({ fileNames, chunks, formTemplates = {}, onReset, apiKey, model: selectedModel, onChangeModel, onRequestApiKeySetup, isUsingUserApiKey, onApiKeyInvalid }) => {
+const SearchView: React.FC<SearchViewProps> = ({ fileNames, chunks, formTemplates = {}, onReset, apiKey, model: selectedModel, onChangeModel, onRequestApiKeySetup, isUsingUserApiKey, onApiKeyInvalid, noticeMessage }) => {
   const [query, setQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
@@ -621,7 +622,12 @@ const handleSearch = useCallback(async () => {
 
   return (
     <div className="w-full h-full flex flex-col p-4 sm:p-6 lg:p-8 bg-slate-50/50">
-       <header className="flex-shrink-0 mb-6 pb-6 border-b border-slate-200">
+      {noticeMessage && (
+        <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+          {noticeMessage}
+        </div>
+      )}
+      <header className="flex-shrink-0 mb-6 pb-6 border-b border-slate-200">
         <div className="flex items-center justify-between">
           <div className='flex items-center gap-3'>
             <DocumentTextIcon className="w-8 h-8 text-sky-500" />

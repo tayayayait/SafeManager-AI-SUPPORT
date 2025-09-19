@@ -6,9 +6,10 @@ interface ApiKeySetupProps {
   allowSkip?: boolean;
   onSkip?: () => void;
   onCancel?: () => void;
+  noticeMessage?: string;
 }
 
-const ApiKeySetup: React.FC<ApiKeySetupProps> = ({ onSubmit, allowSkip = false, onSkip, onCancel }) => {
+const ApiKeySetup: React.FC<ApiKeySetupProps> = ({ onSubmit, allowSkip = false, onSkip, onCancel, noticeMessage }) => {
   const [apiKey, setApiKey] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isValidating, setIsValidating] = useState(false);
@@ -44,6 +45,11 @@ const ApiKeySetup: React.FC<ApiKeySetupProps> = ({ onSubmit, allowSkip = false, 
 
   return (
     <div className="max-w-lg w-full bg-white shadow-xl rounded-2xl p-6 border border-slate-200">
+      {noticeMessage && (
+        <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+          {noticeMessage}
+        </div>
+      )}
       <h1 className="text-2xl font-bold text-slate-800 mb-4">Gemini API 설정</h1>
       <p className="text-sm text-slate-600 mb-6 leading-relaxed">
         앱은 API 키를 저장하지 않습니다. 사용자가 직접 입력한 키만 즉시 호출에 사용하며, 페이지를 새로고침하면 키는
