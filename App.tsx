@@ -8,9 +8,6 @@ import Footer from './components/Footer';
 import ApiKeySetup from './components/ApiKeySetup';
 
 declare const pdfjsLib: any;
-declare const process: {
-  env?: Record<string, string | undefined>;
-};
 
 if (typeof window !== 'undefined' && 'pdfjsLib' in window) {
   pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js`;
@@ -109,10 +106,6 @@ const App: React.FC = () => {
   const [processingError, setProcessingError] = useState<string | null>(null);
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [model, setModel] = useState<GeminiModel>('gemini-2.5-flash');
-  const defaultFlashApiKey =
-    (process.env?.GEMINI_API_KEY as string | undefined) ??
-    (process.env?.API_KEY as string | undefined) ??
-    '';
 
   const handleApiSetup = (key: string, selectedModel: GeminiModel) => {
     setApiKey(key);
@@ -184,13 +177,7 @@ const App: React.FC = () => {
   
   const renderContent = () => {
     if (!apiKey) {
-      return (
-        <ApiKeySetup
-          onSubmit={handleApiSetup}
-          initialModel={model}
-          defaultFlashApiKey={defaultFlashApiKey}
-        />
-      );
+      return <ApiKeySetup onSubmit={handleApiSetup} initialModel={model} />;
     }
 
     switch (appState) {
@@ -212,13 +199,7 @@ const App: React.FC = () => {
         return <ErrorView error={processingError || '알 수 없는 오류가 발생했습니다.'} onReset={handleReset} />;
       case 'idle':
       default:
-        return (
-          <FileUpload
-            onFilesSelect={handleFilesSelect}
-            setProcessingError={handleSetError}
-            onResetCredentials={handleClearCredentials}
-          />
-        );
+        return <FileUpload onFilesSelect={handleFilesSelect} setProcessingError={handleSetError} />;
     }
   };
 

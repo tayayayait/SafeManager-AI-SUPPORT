@@ -4,7 +4,6 @@ import { UploadCloudIcon, SparklesIcon, DocumentTextIcon, CheckIcon } from './ic
 interface FileUploadProps {
   onFilesSelect: (files: File[]) => void;
   setProcessingError: (error: string) => void;
-  onResetCredentials?: () => void;
 }
 
 const LAW_FILES = [
@@ -87,7 +86,7 @@ const FileInput: React.FC<{
 };
 
 
-const FileUpload: React.FC<FileUploadProps> = ({ onFilesSelect, setProcessingError, onResetCredentials }) => {
+const FileUpload: React.FC<FileUploadProps> = ({ onFilesSelect, setProcessingError }) => {
   const [files, setFiles] = useState<(File | null)[]>(Array(LAW_FILES.length).fill(null));
 
   const handleFileChange = (file: File, index: number) => {
@@ -119,17 +118,6 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFilesSelect, setProcessingErr
       </div>
       
       <div className="bg-white/80 p-6 rounded-2xl shadow-lg backdrop-blur-sm border border-slate-200/50">
-          {onResetCredentials && (
-            <div className="flex justify-end mb-4">
-              <button
-                type="button"
-                onClick={onResetCredentials}
-                className="text-sm font-semibold text-sky-600 hover:text-sky-500"
-              >
-                API 키 변경
-              </button>
-            </div>
-          )}
           <h2 className="text-lg font-semibold text-center text-slate-800 mb-2">2대 핵심 법령 업로드</h2>
           <p className="text-center text-sm text-slate-500 mb-6">정확한 분석을 위해 아래 2가지 법령 PDF 파일을 모두 업로드해주세요.</p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
