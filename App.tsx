@@ -99,13 +99,25 @@ const processSinglePdf = (pdfFile: File): Promise<string> => {
     });
 };
 
+const defaultModel: GeminiModel = 'gemini-2.5-flash';
+
+const getEnvironmentApiKey = (): string | null => {
+  if (typeof process !== 'undefined' && process.env) {
+    const envKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
+    if (envKey && envKey.trim().length > 0) {
+      return envKey.trim();
+    }
+  }
+  return null;
+};
+
 const App: React.FC = () => {
   const [appState, setAppState] = useState<AppState>('idle');
   const [files, setFiles] = useState<File[]>([]);
   const [chunks, setChunks] = useState<string[]>([]);
   const [processingError, setProcessingError] = useState<string | null>(null);
-  const [apiKey, setApiKey] = useState<string | null>(null);
-  const [model, setModel] = useState<GeminiModel>('gemini-2.5-flash');
+  const [apiKey, setApiKey] = useState<string | null>(() => getEnvironmentApiKey());
+  const [model, setModel] = useState<GeminiModel>(defaultModel);
 
   const handleApiSetup = (key: string, selectedModel: GeminiModel) => {
     setApiKey(key);
@@ -118,7 +130,7 @@ const App: React.FC = () => {
 
   const handleClearCredentials = () => {
     setApiKey(null);
-    setModel('gemini-2.5-flash');
+    setModel(defaultModel);
     setFiles([]);
     setChunks([]);
     setProcessingError(null);
