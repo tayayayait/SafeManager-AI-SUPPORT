@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { GoogleGenAI } from '@google/genai';
 import { GeminiModel } from '../types';
 
 interface ApiKeySetupProps {
@@ -23,17 +24,35 @@ const ApiKeySetup: React.FC<ApiKeySetupProps> = ({ onSubmit, initialModel = 'gem
   const [apiKey, setApiKey] = useState('');
   const [selectedModel, setSelectedModel] = useState<GeminiModel>(initialModel);
   const [error, setError] = useState<string | null>(null);
+  const [isValidating, setIsValidating] = useState(false);
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!apiKey.trim()) {
+    const trimmedKey = apiKey.trim();
+
+    if (!trimmedKey) {
       setError('Gemini API 키를 입력해주세요.');
       return;
     }
 
     setError(null);
-    onSubmit(apiKey.trim(), selectedModel);
-    setApiKey('');
+    setIsValidating(true);
+
+    try {
+      const client = new GoogleGenAI({ apiKey: trimmedKey });
+      await client.models.list({ pageSize: 1 });
+
+      onSubmit(trimmedKey, selectedModel);
+      setApiKey('');
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : 'API 키를 확인하는 중 알 수 없는 오류가 발생했습니다.';
+      setError(`API 키 확인에 실패했습니다: ${message}`);
+    } finally {
+      setIsValidating(false);
+    }
   };
 
   return (
@@ -93,9 +112,10 @@ const ApiKeySetup: React.FC<ApiKeySetupProps> = ({ onSubmit, initialModel = 'gem
 
         <button
           type="submit"
-          className="w-full py-2.5 text-sm font-semibold text-white bg-sky-600 rounded-lg hover:bg-sky-500 transition-colors"
+          disabled={isValidating}
+          className="w-full py-2.5 text-sm font-semibold text-white bg-sky-600 rounded-lg hover:bg-sky-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          저장하고 시작하기
+          {isValidating ? '검증 중...' : '저장하고 시작하기'}
         </button>
       </form>
     </div>
