@@ -23,12 +23,27 @@ const ApiKeySetup: React.FC<ApiKeySetupProps> = ({ onSubmit, allowSkip = false, 
       return;
     }
 
+    const apiKeyPattern = /^AIza[0-9A-Za-z_-]{35}$/;
+    if (!apiKeyPattern.test(trimmedKey)) {
+      setError('올바른 형식의 Gemini API 키를 입력해주세요.');
+      return;
+    }
+
     setError(null);
     setIsValidating(true);
 
     try {
       const client = new GoogleGenAI({ apiKey: trimmedKey });
-      await client.models.list({ pageSize: 1 });
+      await client.models.generateContent({
+        model: 'gemini-2.5-pro',
+        contents: [
+          {
+            role: 'user',
+            parts: [{ text: 'ping' }],
+          },
+        ],
+        generationConfig: { maxOutputTokens: 1 },
+      });
 
       onSubmit(trimmedKey);
       setApiKey('');
