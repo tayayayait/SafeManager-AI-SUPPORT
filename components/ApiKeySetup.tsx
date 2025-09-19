@@ -1,28 +1,15 @@
 import React, { useState } from 'react';
 import { GoogleGenAI } from '@google/genai';
-import { GeminiModel } from '../types';
 
 interface ApiKeySetupProps {
-  onSubmit: (apiKey: string, model: GeminiModel) => void;
-  initialModel?: GeminiModel;
+  onSubmit: (apiKey: string) => void;
+  allowSkip?: boolean;
+  onSkip?: () => void;
+  onCancel?: () => void;
 }
 
-const modelOptions: { value: GeminiModel; label: string; description: string }[] = [
-  {
-    value: 'gemini-2.5-pro',
-    label: 'Gemini 2.5 Pro',
-    description: '최고 품질의 분석 결과가 필요한 경우에 적합합니다.'
-  },
-  {
-    value: 'gemini-2.5-flash',
-    label: 'Gemini 2.5 Flash',
-    description: '빠른 응답 속도가 필요한 경우에 적합합니다.'
-  }
-];
-
-const ApiKeySetup: React.FC<ApiKeySetupProps> = ({ onSubmit, initialModel = 'gemini-2.5-flash' }) => {
+const ApiKeySetup: React.FC<ApiKeySetupProps> = ({ onSubmit, allowSkip = false, onSkip, onCancel }) => {
   const [apiKey, setApiKey] = useState('');
-  const [selectedModel, setSelectedModel] = useState<GeminiModel>(initialModel);
   const [error, setError] = useState<string | null>(null);
   const [isValidating, setIsValidating] = useState(false);
 
@@ -42,7 +29,7 @@ const ApiKeySetup: React.FC<ApiKeySetupProps> = ({ onSubmit, initialModel = 'gem
       const client = new GoogleGenAI({ apiKey: trimmedKey });
       await client.models.list({ pageSize: 1 });
 
-      onSubmit(trimmedKey, selectedModel);
+      onSubmit(trimmedKey);
       setApiKey('');
     } catch (err) {
       const message =
@@ -59,8 +46,8 @@ const ApiKeySetup: React.FC<ApiKeySetupProps> = ({ onSubmit, initialModel = 'gem
     <div className="max-w-lg w-full bg-white shadow-xl rounded-2xl p-6 border border-slate-200">
       <h1 className="text-2xl font-bold text-slate-800 mb-4">Gemini API 설정</h1>
       <p className="text-sm text-slate-600 mb-6 leading-relaxed">
-        앱은 API 키를 저장하지 않습니다. Microsoft Store 보안 정책을 준수하기 위해 사용자가 직접 입력한 키만
-        즉시 호출에 사용하며, 페이지를 새로고침하면 키는 사라집니다.
+        앱은 API 키를 저장하지 않습니다. 사용자가 직접 입력한 키만 즉시 호출에 사용하며, 페이지를 새로고침하면 키는
+        사라집니다. 키를 입력하면 <strong>Gemini 2.5 Pro</strong> 모델이 활성화됩니다.
       </p>
       <form onSubmit={handleSubmit} className="space-y-5">
         <div>
@@ -81,42 +68,35 @@ const ApiKeySetup: React.FC<ApiKeySetupProps> = ({ onSubmit, initialModel = 'gem
           </p>
         </div>
 
-        <fieldset>
-          <legend className="block text-sm font-medium text-slate-700 mb-2">사용할 모델</legend>
-          <div className="space-y-3">
-            {modelOptions.map((option) => (
-              <label
-                key={option.value}
-                className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
-                  selectedModel === option.value ? 'border-sky-500 bg-sky-50/80' : 'border-slate-200 hover:border-sky-200'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="gemini-model"
-                  value={option.value}
-                  checked={selectedModel === option.value}
-                  onChange={() => setSelectedModel(option.value)}
-                  className="mt-1"
-                />
-                <div>
-                  <p className="text-sm font-semibold text-slate-800">{option.label}</p>
-                  <p className="text-xs text-slate-600 mt-1">{option.description}</p>
-                </div>
-              </label>
-            ))}
-          </div>
-        </fieldset>
-
         {error && <p className="text-sm text-red-600">{error}</p>}
 
-        <button
-          type="submit"
-          disabled={isValidating}
-          className="w-full py-2.5 text-sm font-semibold text-white bg-sky-600 rounded-lg hover:bg-sky-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isValidating ? '검증 중...' : '저장하고 시작하기'}
-        </button>
+        <div className="space-y-3">
+          <button
+            type="submit"
+            disabled={isValidating}
+            className="w-full py-2.5 text-sm font-semibold text-white bg-sky-600 rounded-lg hover:bg-sky-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isValidating ? '검증 중...' : 'Pro 모델로 계속하기'}
+          </button>
+          {allowSkip && onSkip && (
+            <button
+              type="button"
+              onClick={onSkip}
+              className="w-full py-2.5 text-sm font-semibold text-slate-700 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
+            >
+              Flash 모델로 계속 사용하기
+            </button>
+          )}
+          {onCancel && (
+            <button
+              type="button"
+              onClick={onCancel}
+              className="w-full py-2.5 text-sm font-semibold text-slate-500 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+            >
+              취소
+            </button>
+          )}
+        </div>
       </form>
     </div>
   );

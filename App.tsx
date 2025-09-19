@@ -101,40 +101,95 @@ const processSinglePdf = (pdfFile: File): Promise<string> => {
 
 const defaultModel: GeminiModel = 'gemini-2.5-flash';
 
-const getEnvironmentApiKey = (): string | null => {
+const readEnvValue = (key: string): string | null => {
+  try {
+    if (typeof import.meta !== 'undefined' && import.meta.env) {
+      const value = (import.meta.env as Record<string, string | undefined>)[key];
+      if (typeof value === 'string' && value.trim().length > 0) {
+        return value.trim();
+      }
+    }
+  } catch (error) {
+    // import.meta.env is only available in the browser build; ignore reference errors during SSR.
+  }
+
   if (typeof process !== 'undefined' && process.env) {
-    const envKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
-    if (envKey && envKey.trim().length > 0) {
-      return envKey.trim();
+    const value = process.env[key];
+    if (typeof value === 'string' && value.trim().length > 0) {
+      return value.trim();
     }
   }
+
   return null;
 };
+
+const getEnvironmentApiKey = (): string | null => {
+  const possibleKeys = [
+    'VITE_GEMINI_FLASH_API_KEY',
+    'VITE_GEMINI_FLASH_KEY',
+    'GEMINI_FLASH_API_KEY',
+    'GEMINI_API_KEY',
+    'API_KEY',
+  ];
+
+  for (const key of possibleKeys) {
+    const value = readEnvValue(key);
+    if (value) {
+      return value;
+    }
+  }
+
+  return null;
+};
+
+const fallbackApiKey = getEnvironmentApiKey();
 
 const App: React.FC = () => {
   const [appState, setAppState] = useState<AppState>('idle');
   const [files, setFiles] = useState<File[]>([]);
   const [chunks, setChunks] = useState<string[]>([]);
   const [processingError, setProcessingError] = useState<string | null>(null);
-  const [apiKey, setApiKey] = useState<string | null>(() => getEnvironmentApiKey());
+  const [apiKey, setApiKey] = useState<string | null>(null);
   const [model, setModel] = useState<GeminiModel>(defaultModel);
+  const [isApiKeySetupVisible, setIsApiKeySetupVisible] = useState<boolean>(() => !fallbackApiKey);
 
-  const handleApiSetup = (key: string, selectedModel: GeminiModel) => {
-    setApiKey(key);
-    setModel(selectedModel);
+  const resetWorkflows = () => {
     setFiles([]);
     setChunks([]);
     setProcessingError(null);
     setAppState('idle');
   };
 
-  const handleClearCredentials = () => {
+  const handleApiSetup = (key: string) => {
+    setApiKey(key);
+    setModel('gemini-2.5-pro');
+    resetWorkflows();
+    setIsApiKeySetupVisible(false);
+  };
+
+  const handleSkipApiSetup = () => {
     setApiKey(null);
     setModel(defaultModel);
-    setFiles([]);
-    setChunks([]);
-    setProcessingError(null);
-    setAppState('idle');
+    resetWorkflows();
+    setIsApiKeySetupVisible(false);
+  };
+
+  const handleRequestApiKeySetup = () => {
+    setIsApiKeySetupVisible(true);
+  };
+
+  const handleCancelApiSetup = () => {
+    if (!fallbackApiKey && !apiKey) {
+      return;
+    }
+    setIsApiKeySetupVisible(false);
+  };
+
+  const handleModelChange = (nextModel: GeminiModel) => {
+    if (!apiKey && nextModel !== defaultModel) {
+      return;
+    }
+    setModel(nextModel);
   };
 
   const processAllPdfs = useCallback(async (pdfFiles: File[]) => {
@@ -187,9 +242,20 @@ const App: React.FC = () => {
     setAppState('idle');
   };
   
+  const effectiveApiKey = apiKey ?? fallbackApiKey;
+  const shouldForceApiSetup = !effectiveApiKey;
+  const shouldShowApiKeySetup = shouldForceApiSetup || isApiKeySetupVisible;
+
   const renderContent = () => {
-    if (!apiKey) {
-      return <ApiKeySetup onSubmit={handleApiSetup} initialModel={model} />;
+    if (shouldShowApiKeySetup) {
+      return (
+        <ApiKeySetup
+          onSubmit={handleApiSetup}
+          allowSkip={Boolean(fallbackApiKey)}
+          onSkip={fallbackApiKey ? handleSkipApiSetup : undefined}
+          onCancel={isApiKeySetupVisible ? handleCancelApiSetup : undefined}
+        />
+      );
     }
 
     switch (appState) {
@@ -201,17 +267,25 @@ const App: React.FC = () => {
             fileNames={files.map(f => f.name)}
             chunks={chunks}
             onReset={handleReset}
-            apiKey={apiKey}
+            apiKey={effectiveApiKey}
             model={model}
-            onChangeModel={setModel}
-            onResetCredentials={handleClearCredentials}
+            onChangeModel={handleModelChange}
+            onRequestApiKeySetup={handleRequestApiKeySetup}
+            isUsingUserApiKey={Boolean(apiKey)}
           />
         );
       case 'error':
         return <ErrorView error={processingError || '알 수 없는 오류가 발생했습니다.'} onReset={handleReset} />;
       case 'idle':
       default:
-        return <FileUpload onFilesSelect={handleFilesSelect} setProcessingError={handleSetError} />;
+        return (
+          <FileUpload
+            onFilesSelect={handleFilesSelect}
+            setProcessingError={handleSetError}
+            onRequestApiKeySetup={handleRequestApiKeySetup}
+            isUsingUserApiKey={Boolean(apiKey)}
+          />
+        );
     }
   };
 
