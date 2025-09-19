@@ -4,6 +4,8 @@ import { UploadCloudIcon, SparklesIcon, DocumentTextIcon, CheckIcon } from './ic
 interface FileUploadProps {
   onFilesSelect: (files: File[]) => void;
   setProcessingError: (error: string) => void;
+  onRequestApiKeySetup?: () => void;
+  isUsingUserApiKey?: boolean;
 }
 
 const LAW_FILES = [
@@ -86,7 +88,7 @@ const FileInput: React.FC<{
 };
 
 
-const FileUpload: React.FC<FileUploadProps> = ({ onFilesSelect, setProcessingError }) => {
+const FileUpload: React.FC<FileUploadProps> = ({ onFilesSelect, setProcessingError, onRequestApiKeySetup, isUsingUserApiKey = false }) => {
   const [files, setFiles] = useState<(File | null)[]>(Array(LAW_FILES.length).fill(null));
 
   const handleFileChange = (file: File, index: number) => {
@@ -117,6 +119,22 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFilesSelect, setProcessingErr
         </p>
       </div>
       
+      <div className="flex justify-center mb-6">
+        <div className="flex flex-col sm:flex-row items-center gap-3 bg-white/80 border border-slate-200 rounded-xl px-5 py-3 shadow-sm">
+          <span className="text-sm text-slate-700">
+            현재 모델: <strong>{isUsingUserApiKey ? 'Gemini 2.5 Pro' : 'Gemini 2.5 Flash'}</strong>
+          </span>
+          {onRequestApiKeySetup && (
+            <button
+              onClick={onRequestApiKeySetup}
+              className="px-4 py-2 text-sm font-semibold text-sky-700 bg-sky-100 rounded-lg hover:bg-sky-200 transition-colors"
+            >
+              {isUsingUserApiKey ? 'API 키 변경' : 'API 키 입력하고 업그레이드'}
+            </button>
+          )}
+        </div>
+      </div>
+
       <div className="bg-white/80 p-6 rounded-2xl shadow-lg backdrop-blur-sm border border-slate-200/50">
           <h2 className="text-lg font-semibold text-center text-slate-800 mb-2">2대 핵심 법령 업로드</h2>
           <p className="text-center text-sm text-slate-500 mb-6">정확한 분석을 위해 아래 2가지 법령 PDF 파일을 모두 업로드해주세요.</p>

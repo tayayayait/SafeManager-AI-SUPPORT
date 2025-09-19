@@ -392,10 +392,11 @@ interface SearchViewProps {
   apiKey: string;
   model: GeminiModel;
   onChangeModel: (model: GeminiModel) => void;
-  onResetCredentials: () => void;
+  onRequestApiKeySetup: () => void;
+  isUsingUserApiKey: boolean;
 }
 
-const SearchView: React.FC<SearchViewProps> = ({ fileNames, chunks, formTemplates = {}, onReset, apiKey, model: selectedModel, onChangeModel, onResetCredentials }) => {
+const SearchView: React.FC<SearchViewProps> = ({ fileNames, chunks, formTemplates = {}, onReset, apiKey, model: selectedModel, onChangeModel, onRequestApiKeySetup, isUsingUserApiKey }) => {
   const [query, setQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
@@ -626,15 +627,25 @@ const handleSearch = useCallback(async () => {
                 aria-label="Gemini 모델 선택"
               >
                 {MODEL_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>{option.label}</option>
+                  <option
+                    key={option.value}
+                    value={option.value}
+                    disabled={!isUsingUserApiKey && option.value !== 'gemini-2.5-flash'}
+                  >
+                    {option.label}
+                    {!isUsingUserApiKey && option.value !== 'gemini-2.5-flash' ? ' (API 키 필요)' : ''}
+                  </option>
                 ))}
               </select>
             </div>
+            {!isUsingUserApiKey && (
+              <span className="text-xs text-slate-500">Pro 모델은 API 키 입력 후 사용 가능합니다.</span>
+            )}
             <button
-              onClick={onResetCredentials}
+              onClick={onRequestApiKeySetup}
               className="px-3 py-1.5 text-sm font-semibold text-slate-600 bg-white border border-slate-300 rounded-md hover:bg-slate-50"
             >
-              API 키 재설정
+              {isUsingUserApiKey ? 'API 키 변경' : 'API 키 입력'}
             </button>
             <button onClick={() => setIsHistoryVisible(!isHistoryVisible)} className="p-2 rounded-md text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition-colors">
                 <HistoryIcon className="w-5 h-5"/>
