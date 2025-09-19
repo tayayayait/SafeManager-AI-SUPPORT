@@ -212,7 +212,13 @@ const App: React.FC = () => {
         return <ErrorView error={processingError || '알 수 없는 오류가 발생했습니다.'} onReset={handleReset} />;
       case 'idle':
       default:
-        return <FileUpload onFilesSelect={handleFilesSelect} setProcessingError={handleSetError} />;
+        return (
+          <FileUpload
+            onFilesSelect={handleFilesSelect}
+            setProcessingError={handleSetError}
+            onResetCredentials={handleClearCredentials}
+          />
+        );
     }
   };
 

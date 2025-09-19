@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { GeminiModel } from '../types';
 
 interface ApiKeySetupProps {
@@ -39,34 +39,16 @@ const ApiKeySetup: React.FC<ApiKeySetupProps> = ({
   const [selectedModel, setSelectedModel] = useState<GeminiModel>(initialModel);
   const [error, setError] = useState<string | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
-  const hasHandledInitialFlash = useRef(false);
 
   useEffect(() => {
-    if (hasHandledInitialFlash.current) {
-      return;
+    if (initialModel === 'gemini-2.5-flash' && !defaultFlashApiKey) {
+      setError('기본 Flash API 키가 설정되어 있지 않습니다. .env.local 파일에서 GEMINI_API_KEY를 설정해주세요.');
     }
-
-    if (initialModel !== 'gemini-2.5-flash') {
-      hasHandledInitialFlash.current = true;
-      return;
-    }
-
-    hasHandledInitialFlash.current = true;
-
-    if (!defaultFlashApiKey) {
-      setError(
-        '기본 Flash API 키가 설정되어 있지 않습니다. .env.local 파일에서 GEMINI_API_KEY를 설정해주세요.'
-      );
-      return;
-    }
-
-    onSubmit(defaultFlashApiKey, 'gemini-2.5-flash');
-  }, [defaultFlashApiKey, initialModel, onSubmit]);
+  }, [defaultFlashApiKey, initialModel]);
 
   const handleModelSelect = (model: GeminiModel) => {
     setSelectedModel(model);
     setApiKey('');
-    setError(null);
 
     if (model === 'gemini-2.5-flash') {
       if (!defaultFlashApiKey) {
@@ -74,8 +56,21 @@ const ApiKeySetup: React.FC<ApiKeySetupProps> = ({
         return;
       }
 
-      onSubmit(defaultFlashApiKey, model);
+      setError(null);
+      onSubmit(defaultFlashApiKey, 'gemini-2.5-flash');
+      return;
     }
+
+    setError(null);
+  };
+
+  const handleFlashContinue = () => {
+    if (!defaultFlashApiKey) {
+      setError('기본 Flash API 키가 설정되어 있지 않습니다. .env.local 파일에서 GEMINI_API_KEY를 설정해주세요.');
+      return;
+    }
+
+    onSubmit(defaultFlashApiKey, 'gemini-2.5-flash');
   };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -174,8 +169,18 @@ const ApiKeySetup: React.FC<ApiKeySetupProps> = ({
         </form>
       )}
 
-      {selectedModel === 'gemini-2.5-flash' && error && (
-        <p className="mt-4 text-sm text-red-600">{error}</p>
+      {selectedModel === 'gemini-2.5-flash' && (
+        <div className="mt-6 space-y-4">
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          <button
+            type="button"
+            onClick={handleFlashContinue}
+            className="w-full py-2.5 text-sm font-semibold text-white bg-sky-600 rounded-lg hover:bg-sky-500 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+            disabled={isVerifying}
+          >
+            Flash 기본 키로 계속
+          </button>
+        </div>
       )}
     </div>
   );
