@@ -152,6 +152,7 @@ const App: React.FC = () => {
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [model, setModel] = useState<GeminiModel>(defaultModel);
   const [isApiKeySetupVisible, setIsApiKeySetupVisible] = useState<boolean>(() => !fallbackApiKey);
+  const [apiKeyFallbackNotice, setApiKeyFallbackNotice] = useState<string>('');
 
   const resetWorkflows = () => {
     setFiles([]);
@@ -165,6 +166,7 @@ const App: React.FC = () => {
     setModel('gemini-2.5-pro');
     resetWorkflows();
     setIsApiKeySetupVisible(false);
+    setApiKeyFallbackNotice('');
   };
 
   const handleSkipApiSetup = () => {
@@ -172,6 +174,7 @@ const App: React.FC = () => {
     setModel(defaultModel);
     resetWorkflows();
     setIsApiKeySetupVisible(false);
+    setApiKeyFallbackNotice('');
   };
 
   const handleRequestApiKeySetup = () => {
@@ -196,6 +199,7 @@ const App: React.FC = () => {
     setApiKey(null);
     setModel(defaultModel);
     setIsApiKeySetupVisible(true);
+    setApiKeyFallbackNotice('입력하신 Gemini 2.5 Pro API 키 인증에 실패해 Flash 모델로 전환했습니다. 새로운 API 키를 입력하거나 Flash 모델로 계속 진행할 수 있습니다.');
   }, []);
 
   const processAllPdfs = useCallback(async (pdfFiles: File[]) => {
@@ -260,6 +264,7 @@ const App: React.FC = () => {
           allowSkip={Boolean(fallbackApiKey)}
           onSkip={fallbackApiKey ? handleSkipApiSetup : undefined}
           onCancel={isApiKeySetupVisible ? handleCancelApiSetup : undefined}
+          noticeMessage={apiKeyFallbackNotice}
         />
       );
     }
@@ -279,6 +284,7 @@ const App: React.FC = () => {
             onRequestApiKeySetup={handleRequestApiKeySetup}
             isUsingUserApiKey={Boolean(apiKey)}
             onApiKeyInvalid={handleApiKeyInvalid}
+            noticeMessage={apiKeyFallbackNotice}
           />
         );
       case 'error':
