@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { GeminiModel } from '../types';
 
 interface ApiKeySetupProps {
@@ -39,6 +39,29 @@ const ApiKeySetup: React.FC<ApiKeySetupProps> = ({
   const [selectedModel, setSelectedModel] = useState<GeminiModel>(initialModel);
   const [error, setError] = useState<string | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
+  const hasHandledInitialFlash = useRef(false);
+
+  useEffect(() => {
+    if (hasHandledInitialFlash.current) {
+      return;
+    }
+
+    if (initialModel !== 'gemini-2.5-flash') {
+      hasHandledInitialFlash.current = true;
+      return;
+    }
+
+    hasHandledInitialFlash.current = true;
+
+    if (!defaultFlashApiKey) {
+      setError(
+        '기본 Flash API 키가 설정되어 있지 않습니다. .env.local 파일에서 GEMINI_API_KEY를 설정해주세요.'
+      );
+      return;
+    }
+
+    onSubmit(defaultFlashApiKey, 'gemini-2.5-flash');
+  }, [defaultFlashApiKey, initialModel, onSubmit]);
 
   const handleModelSelect = (model: GeminiModel) => {
     setSelectedModel(model);
