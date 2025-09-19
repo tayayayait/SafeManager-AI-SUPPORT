@@ -394,9 +394,10 @@ interface SearchViewProps {
   onChangeModel: (model: GeminiModel) => void;
   onRequestApiKeySetup: () => void;
   isUsingUserApiKey: boolean;
+  onApiKeyInvalid: () => void;
 }
 
-const SearchView: React.FC<SearchViewProps> = ({ fileNames, chunks, formTemplates = {}, onReset, apiKey, model: selectedModel, onChangeModel, onRequestApiKeySetup, isUsingUserApiKey }) => {
+const SearchView: React.FC<SearchViewProps> = ({ fileNames, chunks, formTemplates = {}, onReset, apiKey, model: selectedModel, onChangeModel, onRequestApiKeySetup, isUsingUserApiKey, onApiKeyInvalid }) => {
   const [query, setQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
@@ -542,16 +543,32 @@ const handleSearch = useCallback(async () => {
 
     } catch (err: any) {
         console.error("API Error:", err);
-        if (err.message.includes('400')) {
+        const status = err?.status ?? err?.response?.status ?? err?.error?.status ?? err?.statusCode ?? err?.code;
+        const message: string =
+          typeof err?.message === 'string'
+            ? err.message
+            : typeof err?.error?.message === 'string'
+              ? err.error.message
+              : '';
+        const normalizedMessage = message.toLowerCase();
+        const unauthorizedStatus = typeof status === 'number' && [401, 403].includes(status);
+        const unauthorizedMessage = normalizedMessage.includes('api key') || normalizedMessage.includes('permission denied') || normalizedMessage.includes('unauthorized');
+
+        if (unauthorizedStatus || unauthorizedMessage) {
+             const fallbackMessage = '입력한 API 키가 거부되어 Gemini 2.5 Flash로 전환했습니다.';
+             setError(fallbackMessage);
+             onChangeModel('gemini-2.5-flash');
+             onApiKeyInvalid();
+        } else if (message.includes('400')) {
              setError("AI 모델의 응답 형식이 잘못되었습니다. 잠시 후 다시 시도해주세요. 오류가 계속되면 프롬프트를 수정해야 할 수 있습니다.");
-        } else if (err.message.includes('503') || err.message.includes('500')) {
+        } else if (message.includes('503') || message.includes('500')) {
              setError("서비스가 일시적으로 과부하 상태입니다. 잠시 후 다시 시도해주세요.");
         } else {
-             setError(`분석 중 오류가 발생했습니다: ${err.message}`);
+             setError(`분석 중 오류가 발생했습니다: ${message}`);
         }
         setIsLoading(false);
-    } 
-  }, [query, chunks, fileNames, searchHistory, aiClient, selectedModel]);
+    }
+  }, [query, chunks, fileNames, searchHistory, aiClient, selectedModel, onChangeModel, onApiKeyInvalid]);
 
   const loadFromHistory = (item: SearchHistoryItem) => {
     setQuery(item.query);

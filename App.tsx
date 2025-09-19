@@ -192,6 +192,12 @@ const App: React.FC = () => {
     setModel(nextModel);
   };
 
+  const handleApiKeyInvalid = useCallback(() => {
+    setApiKey(null);
+    setModel(defaultModel);
+    setIsApiKeySetupVisible(true);
+  }, []);
+
   const processAllPdfs = useCallback(async (pdfFiles: File[]) => {
     try {
       const allTexts = await Promise.all(pdfFiles.map(file => processSinglePdf(file)));
@@ -272,6 +278,7 @@ const App: React.FC = () => {
             onChangeModel={handleModelChange}
             onRequestApiKeySetup={handleRequestApiKeySetup}
             isUsingUserApiKey={Boolean(apiKey)}
+            onApiKeyInvalid={handleApiKeyInvalid}
           />
         );
       case 'error':
