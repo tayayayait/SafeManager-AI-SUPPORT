@@ -101,36 +101,30 @@ const processSinglePdf = (pdfFile: File): Promise<string> => {
 
 const defaultModel: GeminiModel = 'gemini-2.5-flash';
 
-const readEnvValue = (key: string): string | null => {
+const getEnvironmentApiKey = (): string | null => {
   try {
     if (typeof import.meta !== 'undefined' && import.meta.env) {
-      const value = (import.meta.env as Record<string, string | undefined>)[key];
-      if (typeof value === 'string' && value.trim().length > 0) {
-        return value.trim();
+      const env = import.meta.env as any;
+      const possibleValues = [
+        env?.VITE_GEMINI_FLASH_API_KEY,
+        env?.VITE_GEMINI_FLASH_KEY,
+        env?.GEMINI_FLASH_API_KEY,
+        env?.GEMINI_API_KEY,
+        env?.API_KEY,
+      ];
+
+      for (const value of possibleValues) {
+        if (typeof value === 'string') {
+          const trimmed = value.trim();
+          if (trimmed.length > 0) {
+            return trimmed;
+          }
+        }
       }
     }
   } catch (error) {
     // import.meta.env is only available in the browser build; ignore reference errors during SSR.
   }
-  return null;
-};
-
-const getEnvironmentApiKey = (): string | null => {
-  const possibleKeys = [
-    'VITE_GEMINI_FLASH_API_KEY',
-    'VITE_GEMINI_FLASH_KEY',
-    'GEMINI_FLASH_API_KEY',
-    'GEMINI_API_KEY',
-    'API_KEY',
-  ];
-
-  for (const key of possibleKeys) {
-    const value = readEnvValue(key);
-    if (value) {
-      return value;
-    }
-  }
-
   return null;
 };
 
