@@ -112,14 +112,6 @@ const readEnvValue = (key: string): string | null => {
   } catch (error) {
     // import.meta.env is only available in the browser build; ignore reference errors during SSR.
   }
-
-  if (typeof process !== 'undefined' && process.env) {
-    const value = process.env[key];
-    if (typeof value === 'string' && value.trim().length > 0) {
-      return value.trim();
-    }
-  }
-
   return null;
 };
 
